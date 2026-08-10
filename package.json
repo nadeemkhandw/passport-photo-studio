@@ -12,7 +12,8 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-easy-crop": "^5.5.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",
