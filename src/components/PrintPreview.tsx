@@ -213,23 +213,11 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({
                         boxSizing: 'border-box',
                       }}
                     >
-                      <div
-                        className="w-full h-full relative overflow-hidden flex items-center justify-center bg-white"
-                        style={{
-                          filter: item.adjustments
-                            ? `brightness(${100 + item.adjustments.brightness}%) contrast(${100 + item.adjustments.contrast}%)`
-                            : 'none',
-                        }}
-                      >
+                      <div className="w-full h-full relative overflow-hidden flex items-center justify-center bg-white">
                         <img
                           src={item.url || item.src}
                           alt={item.name}
-                          className="max-w-full max-h-full object-contain pointer-events-none"
-                          style={{
-                            transform: item.crop
-                              ? `translate(${item.crop.x}%, ${item.crop.y}%) scale(${item.crop.scale}) rotate(${item.crop.rotation}deg)`
-                              : 'none',
-                          }}
+                          className="w-full h-full object-cover pointer-events-none"
                         />
                       </div>
 
