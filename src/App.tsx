@@ -50,6 +50,7 @@ export function App() {
           const newPhoto: PhotoItem = {
             id: `photo-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
             url: result,
+            originalUrl: result,
             src: result,
             name: file.name,
             quantity: 4,
@@ -113,11 +114,16 @@ export function App() {
 
   const handleSaveCrop = (
     photoId: string,
+    croppedUrl: string,
     crop: CropData,
     adjustments: PhotoAdjustments
   ) => {
     setPhotos((prev) =>
-      prev.map((p) => (p.id === photoId ? { ...p, crop, adjustments } : p))
+      prev.map((p) =>
+        p.id === photoId
+          ? { ...p, url: croppedUrl, src: croppedUrl, crop, adjustments }
+          : p
+      )
     );
   };
 
@@ -145,7 +151,7 @@ export function App() {
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode((prev) => !prev)}
         selectedPassportPreset={settings.passportPresetId}
-        onSelectPassportPreset={(presetId) => {
+        onSelectPassportPreset={(presetId: string) => {
           const found = [
             { id: 'us', w: 50.8, h: 50.8 },
             { id: 'eu', w: 35, h: 45 },
