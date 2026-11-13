@@ -5,6 +5,7 @@ import { ControlPanel } from './components/ControlPanel';
 import { CropModal } from './components/CropModal';
 import { PrintPreview } from './components/PrintPreview';
 import { Landing } from './components/Landing';
+import { LegalPage, LEGAL_LINKS, type LegalPageId } from './components/LegalPages';
 import { PaywallModal } from './components/PaywallModal';
 import type { PhotoItem, PrintSettings, CropData, PhotoAdjustments, PrintConfig } from './types';
 import { calculateGrid } from './utils/gridCalculator';
@@ -38,6 +39,26 @@ export function App() {
   const [isPaywallOpen, setIsPaywallOpen] = useState<boolean>(false);
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+
+  // Lightweight hash routing for the legal pages (#/terms, #/privacy,
+  // #/refund) — no router dependency, works as a static Vite SPA.
+  const getLegalPageFromHash = (): LegalPageId | null => {
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    if (hash === 'terms' || hash === 'privacy' || hash === 'refund') return hash;
+    return null;
+  };
+  const [legalPage, setLegalPage] = useState<LegalPageId | null>(() =>
+    getLegalPageFromHash()
+  );
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setLegalPage(getLegalPageFromHash());
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   const [settings, setSettings] = useState<PrintSettings>({
     paperPresetId: 'A4',
@@ -298,6 +319,10 @@ export function App() {
         id="studio"
         className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col gap-8"
       >
+        {legalPage ? (
+          <LegalPage page={legalPage} />
+        ) : (
+          <>
         {photos.length === 0 && <Landing onStart={handleStartFromLanding} />}
 
         {formatOnly ? (
@@ -371,13 +396,33 @@ export function App() {
         </section>
 
         {photos.length > 0 && <Landing onStart={handleStartFromLanding} compact />}
+          </>
+        )}
       </main>
 
-      <footer className="no-print border-t border-gray-200 dark:border-gray-800 py-4 text-center text-[11px] text-gray-500 dark:text-gray-400 px-4">
-        Passport Photo Studio — photos are processed in your browser and never
-        uploaded. This tool sizes and lays out photos to official dimensions; acceptance
-        is always decided by the issuing authority. Always check the latest official
-        photo rules before applying.
+      <footer className="no-print border-t border-gray-200 dark:border-gray-800 py-4 px-4">
+        <div className="max-w-7xl mx-auto flex flex-col items-center gap-2 text-center text-[11px] text-gray-500 dark:text-gray-400">
+          <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold">
+            <a href="#/" className="text-indigo-600 dark:text-indigo-400 hover:underline no-underline">
+              Studio
+            </a>
+            {LEGAL_LINKS.map((link) => (
+              <a
+                key={link.id}
+                href={link.href}
+                className="text-indigo-600 dark:text-indigo-400 hover:underline no-underline"
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <p className="m-0">
+            Passport Photo Studio — photos are processed in your browser and never
+            uploaded. This tool sizes and lays out photos to official dimensions; acceptance
+            is always decided by the issuing authority. Always check the latest official
+            photo rules before applying.
+          </p>
+        </div>
       </footer>
 
       <CropModal

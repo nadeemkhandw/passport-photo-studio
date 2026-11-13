@@ -31,8 +31,10 @@ export const PAYMENT_CONFIG = {
 
   /** One-time price for a clean 300 DPI PDF + PNG download (no subscription). */
   priceUsd: 4.99,
+  priceEur: 4.99,
   pricePkr: 400,
   currencyUsd: 'USD',
+  currencyEur: 'EUR',
   currencyPkr: 'PKR',
 
   // TODO: paste the real checkout / payment link here once a provider
