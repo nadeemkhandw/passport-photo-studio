@@ -181,6 +181,9 @@ export interface PrintConfig {
   cutMarkType: CutMarkType;
   cutMarkColor?: string;
   cutMarkLengthMm?: number;
+  /** US format-only mode: ignore any stored brightness / contrast
+   *  adjustments when rendering, so exports stay unaltered. */
+  formatOnly?: boolean;
   showBackground?: boolean;
   backgroundColor?: string;
   align?: 'center' | 'top-left';

@@ -8,6 +8,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { PASSPORT_STANDARDS } from '../types';
 
@@ -21,6 +22,8 @@ interface NavbarProps {
   onPrintSheet: () => void;
   onDownloadPNG: () => void;
   hasPhotos: boolean;
+  /** Paid users download clean files; free users see the paywall. */
+  isPaid?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,6 +36,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onPrintSheet,
   onDownloadPNG,
   hasPhotos,
+  isPaid = false,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-md bg-white/70 dark:bg-gray-900/70 border-b border-gray-200/50 dark:border-gray-800/50 shadow-sm transition-colors duration-300 no-print">
@@ -109,10 +113,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300/80 dark:border-gray-700 shadow-sm active:scale-95'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700/50 cursor-not-allowed'
               }`}
-              title="Export PDF Document"
+              title="Export PDF Document — paid download, free preview is watermarked"
             >
               <FileDown className="w-3.5 h-3.5 text-rose-500" />
               <span className="hidden md:inline">Export PDF</span>
+              {hasPhotos && !isPaid && <Lock className="w-3 h-3 text-gray-400" />}
             </button>
 
             <button
@@ -123,10 +128,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300/80 dark:border-gray-700 shadow-sm active:scale-95'
                   : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 border-gray-200 dark:border-gray-700/50 cursor-not-allowed'
               }`}
-              title="Download High-Res PNG Sheet"
+              title="Download High-Res PNG Sheet — paid download, free preview is watermarked"
             >
               <Image className="w-3.5 h-3.5 text-blue-500" />
               <span className="hidden lg:inline">Download PNG</span>
+              {hasPhotos && !isPaid && <Lock className="w-3 h-3 text-gray-400" />}
             </button>
 
             <div className="h-5 w-px bg-gray-300/60 dark:bg-gray-700/60 mx-1 hidden sm:block" />

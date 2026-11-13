@@ -41,7 +41,8 @@ export async function createTransformedPhotoCanvas(
   photoSrc: string,
   targetWidthPx: number,
   targetHeightPx: number,
-  transform?: PhotoTransform
+  transform?: PhotoTransform,
+  ignoreAdjustments = false
 ): Promise<HTMLCanvasElement> {
   const img = await loadImage(photoSrc);
 
@@ -61,8 +62,10 @@ export async function createTransformedPhotoCanvas(
   const crop = transform?.crop;
   const adjustments = transform?.adjustments;
 
-  const brightness = adjustments?.brightness ?? 0;
-  const contrast = adjustments?.contrast ?? 0;
+  // Format-only exports (US preset) must never bake in edits, even if a
+  // photo was adjusted before the preset was switched.
+  const brightness = ignoreAdjustments ? 0 : (adjustments?.brightness ?? 0);
+  const contrast = ignoreAdjustments ? 0 : (adjustments?.contrast ?? 0);
 
   if (brightness !== 0 || contrast !== 0) {
     ctx.filter = `brightness(${100 + brightness}%) contrast(${100 + contrast}%)`;
@@ -244,7 +247,8 @@ export async function exportToPdf(
         pos.photoSrc,
         widthPx,
         heightPx,
-        pos.transform
+        pos.transform,
+        config.formatOnly === true
       );
 
       const imgDataUrl = photoCanvas.toDataURL('image/jpeg', 0.95);
@@ -303,7 +307,8 @@ export async function exportToPng(
       pos.photoSrc,
       photoWidthPx,
       photoHeightPx,
-      pos.transform
+      pos.transform,
+      config.formatOnly === true
     );
 
     const xPx = pos.xMm * MM_TO_PX_300DPI;

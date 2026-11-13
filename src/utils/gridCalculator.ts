@@ -16,6 +16,36 @@ export const PAPER_DIMENSIONS_MM: Record<string, { width: number; height: number
   '5x7': { width: 127, height: 177.8 },
   '8x10': { width: 203.2, height: 254 },
   letter: { width: 215.9, height: 279.4 },
+  legal: { width: 215.9, height: 355.6 },
+};
+
+// The app (src/types.ts PASSPORT_STANDARDS) uses short ids — 'us', 'eu',
+// 'cn', 'ca', 'jp', 'in' — while src/constants/presets.ts uses long ids
+// such as 'us-passport'. Both schemes are mapped here so a preset can
+// never silently fall back to the wrong size.
+const PHOTO_PRESET_ALIASES: Record<string, { width: number; height: number }> = {
+  us: { width: 50.8, height: 50.8 },
+  'us-passport': { width: 50.8, height: 50.8 },
+  us_passport: { width: 50.8, height: 50.8 },
+  eu: { width: 35, height: 45 },
+  'eu-passport': { width: 35, height: 45 },
+  uk_eu_passport: { width: 35, height: 45 },
+  uk: { width: 35, height: 45 },
+  cn: { width: 33, height: 48 },
+  'china-passport': { width: 33, height: 48 },
+  cn_passport: { width: 33, height: 48 },
+  ca: { width: 50, height: 70 },
+  'canada-passport': { width: 50, height: 70 },
+  ca_passport: { width: 50, height: 70 },
+  in: { width: 51, height: 51 },
+  'india-passport': { width: 51, height: 51 },
+  in_passport: { width: 35, height: 45 },
+  jp: { width: 35, height: 45 },
+  'japan-passport': { width: 35, height: 45 },
+  jp_passport: { width: 35, height: 45 },
+  pan_card: { width: 25, height: 35 },
+  stamp_size: { width: 20, height: 25 },
+  'stamp-photo': { width: 20, height: 25 },
 };
 
 export const PHOTO_DIMENSIONS_MM: Record<string, { width: number; height: number }> = {
@@ -44,7 +74,12 @@ export function getPaperDimensions(
     width = customWidthMm && customWidthMm > 0 ? customWidthMm : 210;
     height = customHeightMm && customHeightMm > 0 ? customHeightMm : 297;
   } else {
-    const dim = PAPER_DIMENSIONS_MM[presetId] || PAPER_DIMENSIONS_MM.A4;
+    // Paper ids arrive in mixed case ('A4', 'Letter', '4x6'). Match
+    // case-insensitively so 'Letter' does not fall back to A4.
+    const dim =
+      PAPER_DIMENSIONS_MM[presetId] ||
+      PAPER_DIMENSIONS_MM[presetId.toLowerCase()] ||
+      PAPER_DIMENSIONS_MM.A4;
     width = dim.width;
     height = dim.height;
   }
@@ -73,7 +108,9 @@ export function getPhotoDimensions(
     };
   }
 
-  const dim = PHOTO_DIMENSIONS_MM[presetId] || { width: 35, height: 45 };
+  const dim =
+    PHOTO_PRESET_ALIASES[presetId] ||
+    PHOTO_DIMENSIONS_MM[presetId] || { width: 35, height: 45 };
   return { width: dim.width, height: dim.height };
 }
 

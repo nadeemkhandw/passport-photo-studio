@@ -14,12 +14,15 @@ interface PrintPreviewProps {
   photos: PhotoItem[];
   settings: PrintSettings;
   onPrint: () => void;
+  /** Paid users see a clean preview; free preview is watermarked. */
+  isPaid?: boolean;
 }
 
 export const PrintPreview: React.FC<PrintPreviewProps> = ({
   photos,
   settings,
   onPrint,
+  isPaid = false,
 }) => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [zoomScale, setZoomScale] = useState<number>(0.85);
@@ -181,6 +184,16 @@ export const PrintPreview: React.FC<PrintPreviewProps> = ({
               height: `${paperPxH}px`,
             }}
           >
+            {!isPaid && (
+              <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden">
+                <span
+                  className="text-rose-500/25 font-extrabold whitespace-nowrap select-none"
+                  style={{ fontSize: `${Math.max(28, paperPxW * 0.09)}px`, transform: 'rotate(-24deg)' }}
+                >
+                  PREVIEW — PAY TO DOWNLOAD CLEAN COPY
+                </span>
+              </div>
+            )}
             <div
               className="absolute pointer-events-none border border-dashed border-sky-400/40 no-print"
               style={{

@@ -21,6 +21,9 @@ interface CropModalProps {
   photoWidthMm?: number;
   photoHeightMm?: number;
   isOpen: boolean;
+  /** US format-only mode (Jan 2026 US State Dept rule): crop and resize
+   *  only — brightness / contrast and any other edits are disabled. */
+  formatOnly?: boolean;
   onClose: () => void;
   onSaveCrop: (
     photoId: string,
@@ -35,17 +38,19 @@ export const CropModal: React.FC<CropModalProps> = ({
   photoWidthMm = 35,
   photoHeightMm = 45,
   isOpen,
+  formatOnly = false,
   onClose,
   onSaveCrop,
 }) => {
-  if (!isOpen || !photo) return null;
-
+  // Hooks must run before any early return (Rules of Hooks): previously
+  // this component returned early when closed, then called useState /
+  // useEffect, which breaks when the modal opens and closes.
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState<number>(photo.crop?.scale ?? 1);
-  const [rotation, setRotation] = useState<number>(photo.crop?.rotation ?? 0);
+  const [zoom, setZoom] = useState<number>(1);
+  const [rotation, setRotation] = useState<number>(0);
 
-  const [brightness, setBrightness] = useState<number>(photo.adjustments?.brightness ?? 0);
-  const [contrast, setContrast] = useState<number>(photo.adjustments?.contrast ?? 0);
+  const [brightness, setBrightness] = useState<number>(0);
+  const [contrast, setContrast] = useState<number>(0);
   const [showGuides, setShowGuides] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
@@ -56,10 +61,13 @@ export const CropModal: React.FC<CropModalProps> = ({
       setCrop({ x: photo.crop?.x ?? 0, y: photo.crop?.y ?? 0 });
       setZoom(photo.crop?.scale ?? 1);
       setRotation(photo.crop?.rotation ?? 0);
-      setBrightness(photo.adjustments?.brightness ?? 0);
-      setContrast(photo.adjustments?.contrast ?? 0);
+      // In format-only mode any stored adjustments are discarded.
+      setBrightness(formatOnly ? 0 : (photo.adjustments?.brightness ?? 0));
+      setContrast(formatOnly ? 0 : (photo.adjustments?.contrast ?? 0));
     }
-  }, [photo]);
+  }, [photo, formatOnly]);
+
+  if (!isOpen || !photo) return null;
 
   const targetAspect = (photoWidthMm || 35) / (photoHeightMm || 45);
 
@@ -85,19 +93,22 @@ export const CropModal: React.FC<CropModalProps> = ({
     try {
       setIsProcessing(true);
       const sourceImage = photo.originalUrl || photo.url || photo.src;
+      // Format-only mode: no brightness / contrast is ever baked in.
+      const appliedBrightness = formatOnly ? 0 : brightness;
+      const appliedContrast = formatOnly ? 0 : contrast;
       const croppedUrl = await getCroppedImg(
         sourceImage,
         croppedAreaPixels,
         rotation,
-        brightness,
-        contrast
+        appliedBrightness,
+        appliedContrast
       );
 
       onSaveCrop(
         photo.id,
         croppedUrl,
         { x: crop.x, y: crop.y, scale: zoom, rotation },
-        { brightness, contrast }
+        { brightness: appliedBrightness, contrast: appliedContrast }
       );
       setIsProcessing(false);
       onClose();
@@ -139,8 +150,8 @@ export const CropModal: React.FC<CropModalProps> = ({
         </div>
 
         <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 p-6 overflow-y-auto">
-          <div className="md:col-span-7 flex flex-col items-center justify-center gap-3 bg-slate-950 p-4 rounded-2xl border border-gray-800 relative select-none min-h-[380px]">
-            <div className="relative w-full h-[360px] rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/80">
+          <div className="md:col-span-7 flex flex-col items-center justify-center gap-3 bg-slate-950 p-4 rounded-2xl border border-gray-800 relative select-none min-h-[320px]">
+            <div className="relative w-full h-[300px] sm:h-[360px] rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/80">
               <Cropper
                 image={photo.originalUrl || photo.url || photo.src}
                 crop={crop}
@@ -204,7 +215,7 @@ export const CropModal: React.FC<CropModalProps> = ({
             </div>
 
             <div className="flex items-center justify-between w-full px-2 text-xs text-gray-400">
-              <span>Drag to position • Pinch / scroll to zoom</span>
+              <span>Drag to position • Pinch / scroll to zoom • On a phone, drag with one finger and pinch with two</span>
               <button
                 onClick={() => setShowGuides((prev) => !prev)}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
@@ -271,45 +282,63 @@ export const CropModal: React.FC<CropModalProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  <span className="flex items-center gap-1.5">
-                    <Sun className="w-4 h-4 text-amber-500" /> Brightness
-                  </span>
-                  <span className="font-mono text-amber-600 dark:text-amber-400">
-                    {brightness > 0 ? `+${brightness}` : brightness}%
-                  </span>
+              {formatOnly ? (
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/50 text-xs text-amber-800 dark:text-amber-200">
+                  <strong>Format-only for US passports — crop and resize only, no edits.</strong>
+                  <br />
+                  Since January 2026 the US Department of State rejects photos that
+                  have been digitally altered — including brightness / contrast
+                  changes, filters, skin smoothing and background replacement.
+                  Brightness and contrast controls are disabled for this preset.
                 </div>
-                <input
-                  type="range"
-                  min="-100"
-                  max="100"
-                  step="5"
-                  value={brightness}
-                  onChange={(e) => setBrightness(parseInt(e.target.value, 10))}
-                  className="w-full accent-amber-500 cursor-pointer"
-                />
-              </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      <span className="flex items-center gap-1.5">
+                        <Sun className="w-4 h-4 text-amber-500" /> Brightness
+                      </span>
+                      <span className="font-mono text-amber-600 dark:text-amber-400">
+                        {brightness > 0 ? `+${brightness}` : brightness}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      step="5"
+                      value={brightness}
+                      onChange={(e) => setBrightness(parseInt(e.target.value, 10))}
+                      className="w-full accent-amber-500 cursor-pointer"
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  <span className="flex items-center gap-1.5">
-                    <Sliders className="w-4 h-4 text-emerald-500" /> Contrast
-                  </span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                    {contrast > 0 ? `+${contrast}` : contrast}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="-100"
-                  max="100"
-                  step="5"
-                  value={contrast}
-                  onChange={(e) => setContrast(parseInt(e.target.value, 10))}
-                  className="w-full accent-emerald-500 cursor-pointer"
-                />
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      <span className="flex items-center gap-1.5">
+                        <Sliders className="w-4 h-4 text-emerald-500" /> Contrast
+                      </span>
+                      <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                        {contrast > 0 ? `+${contrast}` : contrast}%
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      step="5"
+                      value={contrast}
+                      onChange={(e) => setContrast(parseInt(e.target.value, 10))}
+                      className="w-full accent-emerald-500 cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 m-0">
+                    Warning: edited photos may be rejected — the US bans edited
+                    passport photos outright, and other countries restrict editing
+                    too. Use the original, unedited photo where possible.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
@@ -326,7 +355,11 @@ export const CropModal: React.FC<CropModalProps> = ({
                 className="flex-1 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all cursor-pointer active:scale-95 flex items-center justify-center gap-2"
               >
                 <Check className="w-4 h-4 stroke-[3]" />
-                {isProcessing ? 'Processing Crop...' : 'Apply Crop & Adjustments'}
+                {isProcessing
+                  ? 'Processing Crop...'
+                  : formatOnly
+                    ? 'Apply Crop (format-only)'
+                    : 'Apply Crop & Adjustments'}
               </button>
             </div>
           </div>
